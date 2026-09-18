@@ -358,7 +358,10 @@ export const gameApi = {
     }
   },
 
-  startGame: async (roomId: string, playerSecret: string): Promise<{ status: string }> => {
+  startGame: async (
+    roomId: string,
+    playerSecret: string,
+  ): Promise<{ status: string; gameState?: GameState }> => {
     const response = await api.post(`/rooms/${roomId}/start_game/`, {
       player_secret: playerSecret,
     });
