@@ -35,7 +35,6 @@ export default function Lobby() {
     userSession.playerName ? 'join' : 'landing',
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showRoomBrowser, setShowRoomBrowser] = useState(false);
   const [showDiscordModal, setShowDiscordModal] = useState(false);
   const [discordAccountStatus, setDiscordAccountStatus] = useState<DiscordAccountStatus | null>(
     null,
@@ -114,10 +113,6 @@ export default function Lobby() {
     if (prefersReducedMotion || !mainCardRef.current) return;
     gsap.from(mainCardRef.current, { opacity: 0, duration: 0.2, ease: 'power1.out' });
   }, []);
-
-  const handleRoomJoined = (joinedRoomCode: string) => {
-    setRoomCode(joinedRoomCode);
-  };
 
   const handleJoin = async () => {
     const activeName = playerNameInput.trim() || userSession.playerName?.trim() || '';
@@ -200,67 +195,6 @@ export default function Lobby() {
     setRoomCode(value);
   };
 
-  const handleQuickMatch = async () => {
-    if (!playerNameInput.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const rooms = await roomApi.getRooms();
-      const availableRoom = rooms.find((r) => r.players.length < 2 && r.status === 'lobby');
-
-      if (availableRoom) {
-        const player = await gameApi.joinRoom(
-          availableRoom.code,
-          playerNameInput.trim(),
-          false,
-          getDiscordSession() ?? undefined,
-        );
-        setPlayerName(playerNameInput.trim());
-        setPlayerCredentials(player.id, player.playerSecret!);
-        setActiveRoomSession(availableRoom.code, {
-          playerName: playerNameInput.trim(),
-          playerId: player.id,
-          playerSecret: player.playerSecret!,
-          isSpectator: false,
-        });
-        setRoomCode(availableRoom.code);
-        navigate(`/room/${availableRoom.code}`);
-      } else {
-        const response = await roomApi.createRoom(
-          'Quick Match Room',
-          playerNameInput.trim(),
-          undefined,
-          'classic',
-          [],
-          getDiscordSession() ?? undefined,
-        );
-        const { room_code, player_id, player_secret, access_token, refresh_token } = response;
-        setPlayerName(playerNameInput.trim());
-        setPlayerCredentials(player_id, player_secret);
-        if (access_token && refresh_token) {
-          storeTokens(access_token, refresh_token);
-        }
-        setActiveRoomSession(room_code, {
-          playerName: playerNameInput.trim(),
-          playerId: player_id,
-          playerSecret: player_secret,
-          isSpectator: false,
-          isHost: true,
-        });
-        setRoomCode(room_code);
-        navigate(`/room/${room_code}`);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start quick match';
-      setError(message);
-      console.error('Error in quick match:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleLinkDiscord = () => {
     ensureAnonymousSession?.();
     setShowDiscordModal(true);
@@ -332,14 +266,12 @@ export default function Lobby() {
               onCodeChange={handleCodeChange}
               onJoin={handleJoin}
               onCreate={handleCreateRoom}
-              onQuickMatch={handleQuickMatch}
               onCreateMode={() => setMode('create')}
               onJoinMode={() => setMode('join')}
               onBack={() => {
                 setMode('landing');
                 setError(null);
               }}
-              onBrowseRooms={() => setShowRoomBrowser(true)}
               onLinkDiscord={handleLinkDiscord}
               onManageDiscord={() => setShowDiscordModal(true)}
             />
@@ -349,11 +281,8 @@ export default function Lobby() {
 
       <LobbyModals
         showOnboarding={showOnboarding}
-        showRoomBrowser={showRoomBrowser}
         showDiscordModal={showDiscordModal}
         onOnboardingClose={handleOnboardingClose}
-        onRoomBrowserClose={() => setShowRoomBrowser(false)}
-        onRoomJoined={handleRoomJoined}
         onDiscordModalClose={() => setShowDiscordModal(false)}
         onDiscordStatusChange={handleDiscordStatusChange}
       />
