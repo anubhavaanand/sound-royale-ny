@@ -67,6 +67,43 @@ export function clearStoredTokens(): void {
   }
 }
 
+// ── localStorage cache wrapper ─────────────────────────────────────────
+// Generic TTL cache for GET responses that don't change often (e.g. theme
+// rotations, which are admin-controlled). Eliminates a 1.7-6.8s network
+// round-trip on every lobby mount.
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+const THEME_ROTATIONS_CACHE_KEY = 'sr_theme_rotations';
+const THEME_ROTATIONS_TTL_MS = 7200000; // 2 hours
+
+function readCache<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as CacheEntry<T>;
+    if (Date.now() > entry.expiresAt) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return entry.data;
+  } catch {
+    // Corrupt or inaccessible storage — fall through to network.
+    return null;
+  }
+}
+
+function writeCache<T>(key: string, data: T, ttlMs: number): void {
+  try {
+    const entry: CacheEntry<T> = { data, expiresAt: Date.now() + ttlMs };
+    localStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    // Storage full or disabled — non-fatal, just skip caching.
+  }
+}
+
 // ── Axios instance ─────────────────────────────────────────────────────
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -239,7 +276,10 @@ export const roomApi = {
   },
 
   getThemeRotations: async (): Promise<ThemeRotation[]> => {
+    const cached = readCache<ThemeRotation[]>(THEME_ROTATIONS_CACHE_KEY);
+    if (cached) return cached;
     const response = await api.get('/theme-rotations/');
+    writeCache(THEME_ROTATIONS_CACHE_KEY, response.data, THEME_ROTATIONS_TTL_MS);
     return response.data;
   },
 
