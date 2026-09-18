@@ -163,9 +163,20 @@ export function GameProvider({ children, roomCode }: { children: ReactNode; room
 
   const isMounted = useRef(true);
 
-  // mapRoomToGameState is intentionally NOT defined here — Room.tsx is the
-  // single source of truth for the initial GET /rooms/{code}/ on mount. This
-  // provider only re-fetches on WebSocket reconnect (see onConnect below).
+  // Re-fetch full game state from the backend — REPLACES (doesn't merge)
+  // local state so we always reflect the authoritative server snapshot.
+  // Used for both initial mount and WebSocket reconnect.
+  const refreshRoomState = useCallback(async () => {
+    if (!roomCode) return;
+    try {
+      const roomData: RoomResponse = await roomApi.getRoom(roomCode);
+      if (isMounted.current) {
+        setGameState(buildGameStateFromRoom(roomData));
+      }
+    } catch (err) {
+      console.error('[GameContext] Failed to refresh room state:', err);
+    }
+  }, [roomCode]);
 
   // Track mount lifecycle so late socket callbacks never touch unmounted state.
   useEffect(() => {
@@ -177,6 +188,11 @@ export function GameProvider({ children, roomCode }: { children: ReactNode; room
 
   useEffect(() => {
     if (isE2E || !roomCode) {
+      if (!roomCode) {
+        setError('Room code is required');
+        setIsLoading(false);
+        setGameState(() => emptyGameState);
+      }
       return;
     }
 
@@ -271,19 +287,6 @@ export function GameProvider({ children, roomCode }: { children: ReactNode; room
       }
     };
 
-    const refreshRoomState = async () => {
-      if (!roomCode) return;
-      try {
-        const roomData: RoomResponse = await roomApi.getRoom(roomCode);
-        if (isMounted.current) {
-          // REPLACE (not merge) so a reconnect reflects authoritative state.
-          setGameState(buildGameStateFromRoom(roomData));
-        }
-      } catch (err) {
-        console.error('[GameContext] Failed to refresh room state:', err);
-      }
-    };
-
     gameSocket.connect({
       gameId: roomCode,
       playerId: userSession.playerId ?? undefined,
@@ -319,6 +322,13 @@ export function GameProvider({ children, roomCode }: { children: ReactNode; room
       gameSocket.disconnect();
     };
   }, [roomCode, isE2E, userSession.playerId, userSession.playerSecret]);
+
+  // Initial fetch on mount + reconnect. Single source of truth for room data
+  // on the Room page (Room.tsx no longer fetches — that was the B2 de-dup).
+  useEffect(() => {
+    if (isE2E || !roomCode) return;
+    refreshRoomState();
+  }, [roomCode, isE2E]);
 
   const updateTileStatus = useCallback((playerId: string, tileId: string, status: TileStatus) => {
     setGameState((prev) => ({
