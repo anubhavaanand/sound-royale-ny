@@ -1351,6 +1351,13 @@ class RoomViewSet(viewsets.ModelViewSet):
                     }
                 )
 
+                # Include full room + game state so the frontend can render
+                # the room immediately without extra round-trips (B5 perf).
+                room_serializer = RoomSerializer(room)
+                game_state_serializer = GameStateSerializer(room)
+                response_data["room"] = room_serializer.data
+                response_data["game_state"] = game_state_serializer.data
+
                 return Response(
                     response_data,
                     status=status.HTTP_201_CREATED,
