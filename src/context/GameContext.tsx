@@ -163,101 +163,17 @@ export function GameProvider({ children, roomCode }: { children: ReactNode; room
 
   const isMounted = useRef(true);
 
-  // Map a backend RoomResponse into the normalized client GameState.
-  // Used both on initial mount and on WebSocket reconnect so that the
-  // full game state is REPLACED (not merged) after a disconnect, per guardrail #101.
-  const mapRoomToGameState = useCallback((roomData: RoomResponse): GameState => {
-    const players: GameState['players'] = {};
-    roomData.players.forEach((player) => {
-      const tiles =
-        player.board?.tiles ??
-        player.tiles?.map((tile) => ({
-          id: tile.id,
-          genre: tile.genre,
-          status: tile.status,
-          audioUrl: tile.audio_url,
-        })) ??
-        [];
+  // mapRoomToGameState is intentionally NOT defined here — Room.tsx is the
+  // single source of truth for the initial GET /rooms/{code}/ on mount. This
+  // provider only re-fetches on WebSocket reconnect (see onConnect below).
 
-      players[player.id] = {
-        id: player.id,
-        name: player.name ?? '',
-        avatar: player.avatar,
-        isDiscordVerified: player.is_discord_verified,
-        discordUsername: player.discord_username,
-        discordAvatarUrl: player.discord_avatar_url,
-        board: { tiles },
-        isConnected: player.is_connected,
-        isSpectator: player.is_spectator,
-        isHost: player.is_host,
-        isReady: player.is_ready,
-        eloRating: player.elo_rating,
-        eloWins: player.elo_wins,
-        eloLosses: player.elo_losses,
-        eloMatches: player.elo_matches,
-        isCheckedIn: player.is_checked_in,
-        currentTitle: player.current_title,
-        scoreInfo: player.scoreInfo,
-      };
-    });
-
-    return {
-      gameId: roomData.code,
-      roomCode: roomData.code,
-      status: roomData.status,
-      players,
-      currentRound: roomData.current_round,
-      winner: normalizeRoomWinner(roomData.winner),
-      eloDeltas: roomData.elo_deltas?.map((d) => ({
-        playerId: d.player_id,
-        playerName: d.player_name,
-        previousElo: d.previous_elo,
-        newElo: d.new_elo,
-        delta: d.delta,
-        isWinner: d.is_winner,
-      })),
-    };
-  }, []);
-
-  // Fetch real data from backend when not in E2E mode and roomCode is provided
+  // Track mount lifecycle so late socket callbacks never touch unmounted state.
   useEffect(() => {
     isMounted.current = true;
-    if (isE2E) {
-      return;
-    }
-
-    if (!roomCode) {
-      setError('Room code is required');
-      setIsLoading(false);
-      setGameState(() => emptyGameState);
-      return;
-    }
-
-    const fetchRoomData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const roomData: RoomResponse = await roomApi.getRoom(roomCode);
-
-        if (isMounted.current) {
-          setGameState(buildGameStateFromRoom(roomData));
-        }
-      } catch (err) {
-        if (isMounted.current)
-          setError(err instanceof Error ? err.message : 'Failed to fetch room data');
-        console.error('Error fetching room data:', err);
-      } finally {
-        if (isMounted.current) setIsLoading(false);
-      }
-    };
-
-    fetchRoomData();
-
     return () => {
       isMounted.current = false;
     };
-  }, [roomCode, isE2E, mapRoomToGameState]);
+  }, []);
 
   useEffect(() => {
     if (isE2E || !roomCode) {
