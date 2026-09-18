@@ -419,7 +419,7 @@ export default function Room() {
     if (!userSession.playerSecret) return;
     const interval = setInterval(() => {
       fetchRoom(true, false, true).catch((err) => console.error('Lobby poll error:', err));
-    }, 2000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [gameState.status, fetchRoom, userSession.playerSecret]);
 
