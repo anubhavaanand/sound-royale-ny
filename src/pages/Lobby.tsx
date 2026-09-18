@@ -122,23 +122,22 @@ export default function Lobby() {
     setError(null);
 
     try {
-      const room = await roomApi.getRoom(roomCode);
-      const isSpectatorJoin = room.status === 'playing';
+      // B3: Skip getRoom — go straight to join. POST /join_game returns
+      // full room + game_state (B5), eliminating a redundant GET round-trip.
       const player = await gameApi.joinRoom(
         roomCode,
         activeName,
-        isSpectatorJoin,
+        false,
         getDiscordSession() ?? undefined,
       );
 
-      const activePlayerName = isSpectatorJoin ? player.name : activeName;
-      setPlayerName(activePlayerName);
+      setPlayerName(activeName);
       setPlayerCredentials(player.id, player.playerSecret!);
       setActiveRoomSession(roomCode, {
-        playerName: activePlayerName,
+        playerName: activeName,
         playerId: player.id,
         playerSecret: player.playerSecret!,
-        isSpectator: isSpectatorJoin,
+        isSpectator: false,
       });
       navigate(`/room/${roomCode}`);
     } catch (err) {
