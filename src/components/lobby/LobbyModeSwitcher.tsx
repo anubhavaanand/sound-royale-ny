@@ -22,11 +22,9 @@ interface LobbyModeSwitcherProps {
   onCodeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onJoin: () => void;
   onCreate: () => void;
-  onQuickMatch: () => void;
   onCreateMode: () => void;
   onJoinMode: () => void;
   onBack: () => void;
-  onBrowseRooms: () => void;
   onLinkDiscord: () => void;
   onManageDiscord: () => void;
 }
@@ -48,11 +46,9 @@ export function LobbyModeSwitcher({
   onCodeChange,
   onJoin,
   onCreate,
-  onQuickMatch,
   onCreateMode,
   onJoinMode,
   onBack,
-  onBrowseRooms,
   onLinkDiscord,
   onManageDiscord,
 }: LobbyModeSwitcherProps) {
@@ -65,10 +61,8 @@ export function LobbyModeSwitcher({
           playerNameInput={playerNameInput}
           isLoading={isLoading}
           discordAccountStatus={discordAccountStatus}
-          onQuickMatch={onQuickMatch}
           onCreateMode={onCreateMode}
           onJoinMode={onJoinMode}
-          onBrowseRooms={onBrowseRooms}
           onLinkDiscord={onLinkDiscord}
           onManageDiscord={onManageDiscord}
         />
