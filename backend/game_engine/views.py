@@ -1351,6 +1351,13 @@ class RoomViewSet(viewsets.ModelViewSet):
                     }
                 )
 
+                # Include full room + game state so the frontend can render
+                # the room immediately without extra round-trips (B5 perf).
+                room_serializer = RoomSerializer(room)
+                game_state_serializer = GameStateSerializer(room)
+                response_data["room"] = room_serializer.data
+                response_data["game_state"] = game_state_serializer.data
+
                 return Response(
                     response_data,
                     status=status.HTTP_201_CREATED,
@@ -1510,11 +1517,16 @@ class RoomViewSet(viewsets.ModelViewSet):
         broadcast_timer_tick(room)
         start_timer_broadcast(room.id, ROUND_SECONDS)
 
+        # Include full game state so the frontend can render immediately
+        # without an extra GET /game_state/ round-trip (B6 perf).
+        game_state_serializer = GameStateSerializer(room)
+
         return Response(
             {
                 "status": "Game started",
                 "match_type": room.match_type,
                 "first_round": RoundSerializer(first_round).data,
+                "game_state": game_state_serializer.data,
             },
             status=status.HTTP_200_OK,
         )

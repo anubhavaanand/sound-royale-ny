@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, Plus, Users, Loader2 } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { DiscordProfileCard } from '@/components/game/DiscordProfileCard';
 import { DiscordAccountStatus } from '@/types/game';
 
@@ -8,10 +8,8 @@ interface LobbyLandingProps {
   playerNameInput: string;
   isLoading: boolean;
   discordAccountStatus: DiscordAccountStatus | null;
-  onQuickMatch: () => void;
   onCreateMode: () => void;
   onJoinMode: () => void;
-  onBrowseRooms: () => void;
   onLinkDiscord: () => void;
   onManageDiscord: () => void;
 }
@@ -20,41 +18,14 @@ export function LobbyLanding({
   playerNameInput,
   isLoading,
   discordAccountStatus,
-  onQuickMatch,
   onCreateMode,
   onJoinMode,
-  onBrowseRooms,
   onLinkDiscord,
   onManageDiscord,
 }: LobbyLandingProps) {
   return (
     <div className="space-y-5">
-      {/* Primary CTA */}
-      <Button
-        data-testid="quick-match-button"
-        onClick={onQuickMatch}
-        disabled={!playerNameInput.trim() || isLoading}
-        className="w-full h-16 text-xl font-bold bg-primary hover:bg-primary/90 active:scale-[0.97] text-primary-foreground shadow-sm transition-colors"
-        size="lg"
-      >
-        {isLoading ? (
-          <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-        ) : (
-          <Gamepad2 className="mr-3 h-6 w-6" />
-        )}
-        {isLoading ? 'Finding Match...' : 'QUICK MATCH'}
-      </Button>
-
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-muted-foreground/20" />
-        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-          or
-        </span>
-        <div className="flex-1 h-px bg-muted-foreground/20" />
-      </div>
-
-      {/* Secondary actions */}
+      {/* Primary actions */}
       <div className="grid grid-cols-2 gap-3">
         <Button
           data-testid="create-room-button"
@@ -78,16 +49,6 @@ export function LobbyLanding({
           Join
         </Button>
       </div>
-
-      {/* Browse */}
-      <Button
-        onClick={onBrowseRooms}
-        variant="ghost"
-        size="sm"
-        className="w-full text-xs text-muted-foreground hover:text-foreground"
-      >
-        Browse active rooms
-      </Button>
 
       {/* Discord — minimal */}
       <div className="pt-3 border-t border-muted-foreground/10">
