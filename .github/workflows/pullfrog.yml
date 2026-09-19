@@ -10,8 +10,6 @@ on:
       name:
         type: string
         description: Run name
-  pull_request:
-    types: [opened, synchronize, ready_for_review]
 
 permissions:
   pull-requests: write
