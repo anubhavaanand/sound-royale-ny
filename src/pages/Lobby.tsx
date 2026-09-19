@@ -35,7 +35,6 @@ export default function Lobby() {
     userSession.playerName ? 'join' : 'landing',
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showRoomBrowser, setShowRoomBrowser] = useState(false);
   const [showDiscordModal, setShowDiscordModal] = useState(false);
   const [discordAccountStatus, setDiscordAccountStatus] = useState<DiscordAccountStatus | null>(
     null,
@@ -115,10 +114,6 @@ export default function Lobby() {
     gsap.from(mainCardRef.current, { opacity: 0, duration: 0.2, ease: 'power1.out' });
   }, []);
 
-  const handleRoomJoined = (joinedRoomCode: string) => {
-    setRoomCode(joinedRoomCode);
-  };
-
   const handleJoin = async () => {
     const activeName = playerNameInput.trim() || userSession.playerName?.trim() || '';
     if (roomCode.length !== 4 || !activeName) return;
@@ -127,23 +122,22 @@ export default function Lobby() {
     setError(null);
 
     try {
-      const room = await roomApi.getRoom(roomCode);
-      const isSpectatorJoin = room.status === 'playing';
+      // B3: Skip getRoom — go straight to join. POST /join_game returns
+      // full room + game_state (B5), eliminating a redundant GET round-trip.
       const player = await gameApi.joinRoom(
         roomCode,
         activeName,
-        isSpectatorJoin,
+        false,
         getDiscordSession() ?? undefined,
       );
 
-      const activePlayerName = isSpectatorJoin ? player.name : activeName;
-      setPlayerName(activePlayerName);
+      setPlayerName(activeName);
       setPlayerCredentials(player.id, player.playerSecret!);
       setActiveRoomSession(roomCode, {
-        playerName: activePlayerName,
+        playerName: activeName,
         playerId: player.id,
         playerSecret: player.playerSecret!,
-        isSpectator: isSpectatorJoin,
+        isSpectator: false,
       });
       navigate(`/room/${roomCode}`);
     } catch (err) {
@@ -198,67 +192,6 @@ export default function Lobby() {
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 4);
     setRoomCode(value);
-  };
-
-  const handleQuickMatch = async () => {
-    if (!playerNameInput.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const rooms = await roomApi.getRooms();
-      const availableRoom = rooms.find((r) => r.players.length < 2 && r.status === 'lobby');
-
-      if (availableRoom) {
-        const player = await gameApi.joinRoom(
-          availableRoom.code,
-          playerNameInput.trim(),
-          false,
-          getDiscordSession() ?? undefined,
-        );
-        setPlayerName(playerNameInput.trim());
-        setPlayerCredentials(player.id, player.playerSecret!);
-        setActiveRoomSession(availableRoom.code, {
-          playerName: playerNameInput.trim(),
-          playerId: player.id,
-          playerSecret: player.playerSecret!,
-          isSpectator: false,
-        });
-        setRoomCode(availableRoom.code);
-        navigate(`/room/${availableRoom.code}`);
-      } else {
-        const response = await roomApi.createRoom(
-          'Quick Match Room',
-          playerNameInput.trim(),
-          undefined,
-          'classic',
-          [],
-          getDiscordSession() ?? undefined,
-        );
-        const { room_code, player_id, player_secret, access_token, refresh_token } = response;
-        setPlayerName(playerNameInput.trim());
-        setPlayerCredentials(player_id, player_secret);
-        if (access_token && refresh_token) {
-          storeTokens(access_token, refresh_token);
-        }
-        setActiveRoomSession(room_code, {
-          playerName: playerNameInput.trim(),
-          playerId: player_id,
-          playerSecret: player_secret,
-          isSpectator: false,
-          isHost: true,
-        });
-        setRoomCode(room_code);
-        navigate(`/room/${room_code}`);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to start quick match';
-      setError(message);
-      console.error('Error in quick match:', err);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleLinkDiscord = () => {
@@ -332,14 +265,12 @@ export default function Lobby() {
               onCodeChange={handleCodeChange}
               onJoin={handleJoin}
               onCreate={handleCreateRoom}
-              onQuickMatch={handleQuickMatch}
               onCreateMode={() => setMode('create')}
               onJoinMode={() => setMode('join')}
               onBack={() => {
                 setMode('landing');
                 setError(null);
               }}
-              onBrowseRooms={() => setShowRoomBrowser(true)}
               onLinkDiscord={handleLinkDiscord}
               onManageDiscord={() => setShowDiscordModal(true)}
             />
@@ -349,11 +280,8 @@ export default function Lobby() {
 
       <LobbyModals
         showOnboarding={showOnboarding}
-        showRoomBrowser={showRoomBrowser}
         showDiscordModal={showDiscordModal}
         onOnboardingClose={handleOnboardingClose}
-        onRoomBrowserClose={() => setShowRoomBrowser(false)}
-        onRoomJoined={handleRoomJoined}
         onDiscordModalClose={() => setShowDiscordModal(false)}
         onDiscordStatusChange={handleDiscordStatusChange}
       />

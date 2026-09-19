@@ -284,7 +284,7 @@ class GameSocketService {
     const interval = this.options.reconnectInterval ?? 1000;
     const delay = Math.min(
       interval * Math.pow(2, this.reconnectAttempts) + Math.random() * 1000,
-      30000,
+      10000,
     );
 
     this.reconnectTimeout = setTimeout(() => {

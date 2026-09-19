@@ -237,10 +237,15 @@ export default function Room() {
       return;
     }
 
+    setLoading(true);
     try {
-      await gameApi.startGame(roomId, userSession.playerSecret);
+      const result = await gameApi.startGame(roomId, userSession.playerSecret);
       toast.success('Game started!');
-      await fetchRoom(true);
+      if (result.gameState) {
+        setGameState((prev) => ({ ...prev, ...result.gameState }));
+      } else {
+        await fetchRoom(true);
+      }
       setForceRefresh(Date.now());
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } }; message?: string };
@@ -419,7 +424,7 @@ export default function Room() {
     if (!userSession.playerSecret) return;
     const interval = setInterval(() => {
       fetchRoom(true, false, true).catch((err) => console.error('Lobby poll error:', err));
-    }, 2000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [gameState.status, fetchRoom, userSession.playerSecret]);
 
