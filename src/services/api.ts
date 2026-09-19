@@ -154,13 +154,17 @@ api.interceptors.response.use(
     if (!config.__skipErrorLog) {
       try {
         await api
-          .post('/errors/log/', {
-            path: config.url || '',
-            method: (config.method || '').toUpperCase(),
-            status: error.response?.status || 0,
-            message: error.response?.data?.error || error.message || 'Unknown error',
-            stack: error.stack || '',
-          })
+          .post(
+            '/errors/log/',
+            {
+              path: config.url || '',
+              method: (config.method || '').toUpperCase(),
+              status: error.response?.status || 0,
+              message: error.response?.data?.error || error.message || 'Unknown error',
+              stack: error.stack || '',
+            },
+            { __skipErrorLog: true },
+          )
           .catch((err) => console.error('Failed to log error:', err));
       } catch (e) {
         void e; // non-fatal error-log failure
