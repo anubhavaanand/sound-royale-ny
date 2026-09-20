@@ -21,6 +21,53 @@ Sound Royale is a multiplayer music bingo game where producers compete head-to-h
 | Database | PostgreSQL (production), SQLite (development) |
 | CI/CD | GitHub Actions, Docker Compose, Playwright |
 
+## Installation
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or later) and [pnpm](https://pnpm.io/)
+- Python 3.11+ and `pip`
+
+### Frontend
+
+```bash
+# Clone the repository
+git clone https://github.com/branben/sound-royale-ny.git
+cd sound-royale-ny
+
+# Install dependencies
+pnpm install
+
+# Start the development server
+pnpm run dev
+```
+
+The frontend will be available at `http://localhost:8080`.
+
+### Backend
+
+```bash
+cd backend
+
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run database migrations
+python manage.py migrate
+
+# Start the development server
+python manage.py runserver
+```
+
+The backend API will be available at `http://localhost:8000`.
+
+> **Note:** For real-time WebSocket features, start the server with Daphne instead:
+> `python -m daphne -p 8000 sound_royale_api.asgi:application`
+
 ## Quick Start
 
 ```bash
