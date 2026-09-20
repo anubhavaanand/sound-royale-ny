@@ -57,7 +57,10 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Create a local environment file for development
-echo "SECRET_KEY=dev-secret-key" > .env
+cat > .env << 'EOF'
+SECRET_KEY=dev-secret-key
+DEBUG=True
+EOF
 
 # Run database migrations
 python manage.py migrate
